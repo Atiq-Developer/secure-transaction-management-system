@@ -1,0 +1,27 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { ChevronDown, Search } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { AppShell } from "@/components/layout/app-shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatDate } from "@/lib/utils";
+
+type Item = { id: string; action: string; user: string; email: string | null; ipAddress: string | null; userAgent: string | null; metadata: unknown; createdAt: string };
+type Result = { items: Item[]; meta: { page: number; pageSize: number; total: number; totalPages: number } };
+
+function severity(action: string): "success" | "destructive" | "secondary" | "default" { if (action.includes("FAILED") || action.includes("LOCKED") || action.includes("FROZEN")) return "destructive"; if (action.includes("SUCCESS") || action.includes("REGISTER") || action.includes("UNFROZEN")) return "success"; return "secondary"; }
+
+export function AdminAuditView() {
+  const router = useRouter(); const pathname = usePathname(); const params = useSearchParams(); const query = params.toString(); const [result, setResult] = useState<Result | null>(null); const [loading, setLoading] = useState(true);
+  const update = (updates: Record<string, string | null>) => { const next = new URLSearchParams(params.toString()); Object.entries(updates).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key)); if (!Object.keys(updates).includes("page")) next.delete("page"); router.replace(`${pathname}${next.toString() ? `?${next}` : ""}` as never); };
+  useEffect(() => { setLoading(true); fetch(`/api/admin/audit-logs${query ? `?${query}` : ""}`, { cache: "no-store" }).then((response) => response.json()).then((payload: { data?: Result }) => setResult(payload.data ?? null)).catch(() => setResult(null)).finally(() => setLoading(false)); }, [query]);
+  return <AppShell pageTitle="Audit logs"><div className="mx-auto max-w-7xl space-y-6 p-5 sm:p-8"><header><p className="mb-1 text-sm font-medium text-accent">Traceability</p><h1 className="text-3xl font-bold tracking-tight text-primary">Audit logs</h1><p className="mt-1 text-muted-foreground">Every important security and money movement event.</p></header><Card><CardContent className="grid gap-3 p-4 sm:grid-cols-3"><div className="relative sm:col-span-2"><Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input className="pl-9" placeholder="Search action" value={params.get("action") ?? ""} onChange={(event) => update({ action: event.target.value })} /></div><Input placeholder="Search user" value={params.get("user") ?? ""} onChange={(event) => update({ user: event.target.value })} /><Input type="date" aria-label="From date" value={params.get("from") ?? ""} onChange={(event) => update({ from: event.target.value })} /><Input type="date" aria-label="To date" value={params.get("to") ?? ""} onChange={(event) => update({ to: event.target.value })} /></CardContent></Card>{loading ? <Card><CardContent className="space-y-4 p-5">{[1, 2, 3, 4, 5].map((item) => <Skeleton className="h-12" key={item} />)}</CardContent></Card> : <Card><CardHeader><CardTitle className="text-base">Events ({result?.meta.total ?? 0})</CardTitle></CardHeader><CardContent className="p-0"><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Action</TableHead><TableHead>User</TableHead><TableHead>IP address</TableHead><TableHead>Time</TableHead><TableHead>Details</TableHead></TableRow></TableHeader><TableBody>{result?.items.map((item) => <TableRow key={item.id}><TableCell><Badge variant={severity(item.action)}>{item.action}</Badge></TableCell><TableCell><p className="font-medium">{item.user}</p><p className="text-xs text-muted-foreground">{item.email ?? "System event"}</p></TableCell><TableCell className="text-muted-foreground">{item.ipAddress ?? "-"}</TableCell><TableCell className="whitespace-nowrap text-muted-foreground">{formatDate(item.createdAt)}</TableCell><TableCell><details className="max-w-80"><summary className="flex cursor-pointer list-none items-center gap-1 text-sm font-medium text-accent"><ChevronDown className="size-4" /> View metadata</summary><pre className="mt-2 overflow-auto rounded-lg bg-muted p-3 text-xs">{JSON.stringify(item.metadata ?? {}, null, 2)}</pre></details></TableCell></TableRow>)}</TableBody></Table></div>{(!result || result.items.length === 0) && <p className="p-8 text-center text-sm text-muted-foreground">No audit events match these filters.</p>}</CardContent></Card>}<Pagination meta={result?.meta} onPage={(page) => update({ page: String(page) })} /></div></AppShell>;
+}
+
+function Pagination({ meta, onPage }: { meta?: Result["meta"]; onPage: (page: number) => void }) { if (!meta || meta.totalPages <= 1) return null; return <div className="flex justify-end gap-2"><Button size="sm" variant="outline" disabled={meta.page === 1} onClick={() => onPage(meta.page - 1)}>Previous</Button><span className="px-2 py-2 text-sm text-muted-foreground">{meta.page} / {meta.totalPages}</span><Button size="sm" variant="outline" disabled={meta.page === meta.totalPages} onClick={() => onPage(meta.page + 1)}>Next</Button></div>; }

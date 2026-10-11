@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+:root {
+  --background: 210 40% 98%; --foreground: 215 30% 15%; --card: 0 0% 100%; --card-foreground: 215 30% 15%;
+  --primary: 210 67% 18%; --primary-foreground: 0 0% 100%; --accent: 168 78% 40%; --accent-foreground: 0 0% 100%;
+  --muted: 210 30% 94%; --muted-foreground: 215 16% 47%; --border: 214 25% 88%; --ring: 168 78% 40%;
+  --success: 152 60% 38%; --danger: 0 72% 51%; --warning: 38 92% 50%;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter); --color-background: hsl(var(--background)); --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card)); --color-card-foreground: hsl(var(--card-foreground)); --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground)); --color-accent: hsl(var(--accent)); --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-muted: hsl(var(--muted)); --color-muted-foreground: hsl(var(--muted-foreground)); --color-border: hsl(var(--border));
+  --color-ring: hsl(var(--ring)); --color-success: hsl(var(--success)); --color-danger: hsl(var(--danger)); --color-warning: hsl(var(--warning));
+}
+
+* { border-color: hsl(var(--border)); }
+body { background: hsl(var(--background)); color: hsl(var(--foreground)); }
+
+@media print {
+  body { background: white; }
+  .print\:hidden { display: none !important; }
+}

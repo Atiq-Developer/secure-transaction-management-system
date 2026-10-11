@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  FROZEN
+}
+
+enum TransactionType {
+  TRANSFER
+  DEPOSIT
+}
+
+enum TransactionStatus {
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id               String     @id @default(cuid())
+  fullName         String
+  email            String     @unique
+  passwordHash     String
+  role             Role       @default(CUSTOMER)
+  status           UserStatus @default(ACTIVE)
+  failedLoginCount Int        @default(0)
+  lockedUntil      DateTime?
+  account          Account?
+  auditLogs        AuditLog[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
+
+model Account {
+  id           String        @id @default(cuid())
+  accountNumber String       @unique
+  balance      Decimal       @default(0) @db.Decimal(14, 2)
+  currency     String        @default("PKR")
+  userId       String        @unique
+  user         User          @relation(fields: [userId], references: [id])
+  outgoing     Transaction[] @relation("FromAccount")
+  incoming     Transaction[] @relation("ToAccount")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Transaction {
+  id               String            @id @default(cuid())
+  reference        String            @unique
+  type             TransactionType
+  status           TransactionStatus
+  amount           Decimal           @db.Decimal(14, 2)
+  note             String?
+  failureReason    String?
+  idempotencyKey   String            @unique
+  fromAccountId    String?
+  toAccountId      String?
+  fromAccount      Account?          @relation("FromAccount", fields: [fromAccountId], references: [id])
+  toAccount        Account?          @relation("ToAccount", fields: [toAccountId], references: [id])
+  balanceAfterFrom Decimal?          @db.Decimal(14, 2)
+  balanceAfterTo   Decimal?          @db.Decimal(14, 2)
+  createdAt        DateTime          @default(now())
+
+  @@index([fromAccountId, createdAt])
+  @@index([toAccountId, createdAt])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}

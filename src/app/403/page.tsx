@@ -1,0 +1,5 @@
+import Link from "next/link";
+import { ShieldX } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+export default function ForbiddenPage() { return <main className="grid min-h-screen place-items-center bg-background p-6"><div className="max-w-md text-center"><div className="mx-auto grid size-16 place-items-center rounded-full bg-red-100 text-red-700"><ShieldX className="size-8" /></div><p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-danger">403 · Access denied</p><h1 className="mt-2 text-3xl font-bold text-primary">This area is restricted.</h1><p className="mt-3 text-muted-foreground">You need an administrator account to view SecureTx operations.</p><Button asChild className="mt-7"><Link href="/dashboard">Return to dashboard</Link></Button></div></main>; }
